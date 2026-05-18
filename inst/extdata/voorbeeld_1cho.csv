@@ -1,0 +1,7 @@
+persoonsgebonden_nummer;soort_hoger_onderwijs;soort_inschrijving_actuele_instelling;verblijfsjaar_actuele_instelling;inschrijvingsjaar;diplomajaar;soort_diploma_instelling;geslacht;opleidingsvorm;indicatie_internationale_student;indicatie_eer_actueel;croho_onderdeel_actuele_opleiding;vestigingsnummer_gemeentenaam_volgens_rio;opleiding_actueel_equivalent;type_hoger_onderwijs_binnen_soort_hoger_onderwijs;leeftijd_per_peildatum_1_oktober;postcodecijfers_student_op_1_oktober;postcodecijfers_van_de_hoogste_vooropl_voor_het_ho
+S001;hbo;hoofdinschrijving binnen het domein actuele instelling;1;2020;;;vrouw;voltijd;N;N;techniek;01234 Amsterdam;34401;bachelor;19;4818;4818
+S001;hbo;hoofdinschrijving binnen het domein actuele instelling;2;2021;;;vrouw;voltijd;N;N;techniek;01234 Amsterdam;34401;bachelor;20;4818;4818
+S001;hbo;hoofdinschrijving binnen het domein actuele instelling;3;2022;2023;Hoofd-bachelor-diploma binnen de actuele instelling;vrouw;voltijd;N;N;techniek;01234 Amsterdam;34401;bachelor;21;4818;4818
+S002;hbo;hoofdinschrijving binnen het domein actuele instelling;1;2020;;;man;voltijd;N;N;economie;01234 Amsterdam;34405;bachelor;22;1011;1011
+S002;hbo;hoofdinschrijving binnen het domein actuele instelling;2;2021;;;man;voltijd;N;N;economie;01234 Amsterdam;34405;bachelor;23;1011;1011
+S003;wo;hoofdinschrijving binnen het domein actuele instelling;1;2020;;;vrouw;voltijd;J;J;gedrag en maatschappij;05678 Utrecht;56952;bachelor;18;3511;3511
