@@ -244,3 +244,42 @@ test_that("behoudt student in uitval die niet in cohorten_instroom zit", {
   ## B heeft geen eerstejaar_instelling (NA na left_join) -> uitval_xjr wordt NA
   expect_true(is.na(result$uitval_xjr[result$persoonsgebonden_nummer == "B"]))
 })
+
+
+## --- peiljaar en onvolledige cohorten ---
+
+test_that("geeft fout als de data inschrijvingen na jaar - 1 bevat", {
+  expect_error(
+    bereken_uitval(maak_basis("A", 2024), geen_diplomas, maak_cohort("A", 2020), 2024),
+    "na het peiljaar"
+  )
+})
+
+test_that("leidt jaar standaard af uit de data", {
+  basisbestand <- maak_basis(c("A", "B"), c(2021, 2024))
+  result <- bereken_uitval(basisbestand, geen_diplomas, maak_cohort(c("A", "B"), 2020))
+
+  statussen <- setNames(as.character(result$status), result$persoonsgebonden_nummer)
+  expect_equal(statussen[["B"]], "Zittend")
+  expect_equal(statussen[["A"]], "Uitgevallen")
+})
+
+test_that("markeert uitval als niet waarneembaar voor te recente cohorten", {
+  ## laatste jaar in data = 2024
+  basisbestand <- maak_basis(c("A", "B", "C"), c(2021, 2024, 2023))
+  cohorten_instroom <- maak_cohort(c("A", "B", "C"), c(2021L, 2024L, 2023L))
+
+  result <- bereken_uitval(basisbestand, geen_diplomas, cohorten_instroom, 2025)
+  u1 <- setNames(as.character(result$uitval_1jr), result$persoonsgebonden_nummer)
+  u3 <- setNames(as.character(result$uitval_3jr), result$persoonsgebonden_nummer)
+
+  ## A: 2021 + 1 <= 2024 -> uitval na 1 jaar vast te stellen
+  expect_equal(u1[["A"]], "Uitgevallen binnen 1 jaar")
+  ## A: 2021 + 3 = 2024 -> ook uitval binnen 3 jaar vast te stellen
+  expect_equal(u3[["A"]], "Uitgevallen binnen 3 jaar")
+  ## C: 2023 + 1 = 2024 -> waarneembaar; 2023 + 3 > 2024 -> niet
+  expect_equal(u1[["C"]], "Uitgevallen binnen 1 jaar")
+  expect_equal(u3[["C"]], "Nog niet waarneembaar")
+  ## B: instroom in het laatste jaar -> nog niets vast te stellen
+  expect_equal(u1[["B"]], "Nog niet waarneembaar")
+})

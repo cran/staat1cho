@@ -2,22 +2,27 @@
 % Please edit documentation in R/rendement.R
 \name{maak_diploma_behaald}
 \alias{maak_diploma_behaald}
-\title{Maak een bestand met het vroegst behaalde diploma per student}
+\title{Maak een bestand met het vroegst behaalde diploma per student (of inschrijving)}
 \usage{
-maak_diploma_behaald(basisbestand)
+maak_diploma_behaald(basisbestand, niveau = "student")
 }
 \arguments{
 \item{basisbestand}{Tibble zoals gemaakt door \code{\link[=maak_basisbestand]{maak_basisbestand()}}}
+
+\item{niveau}{Analyseniveau: \code{"student"} (standaard) of \code{"inschrijving"}.
+Bepaalt de sleutel waarop gededupliceerd wordt.}
 }
 \value{
-Een tibble met één rij per student met kolommen
-\code{persoonsgebonden_nummer}, \code{jaar_eerste_diploma},
-\code{verblijfsjaar_eerste_diploma} en \code{diploma}. Gooit een fout bij
-dubbele persoonsgebonden nummers.
+Een tibble met één rij per student (bij \code{niveau = "student"}) of per
+student-opleidingcombinatie (bij \code{niveau = "inschrijving"}), met kolommen
+voor de sleutel(s), \code{jaar_eerste_diploma}, \code{verblijfsjaar_eerste_diploma}
+(verblijfsjaar aan de instelling resp. in de opleiding), \code{diploma},
+\code{soort_diploma} en \code{opleidingscode_diploma} (de opleiding waarin het
+diploma behaald is). Gooit een fout bij dubbele sleutelcombinaties.
 }
 \description{
 Filtert het basisbestand op diplomasoorten die gelden als afgeronde opleiding
-en behoudt per student alleen het eerste diploma op basis van diplomajaar.
+en behoudt per sleutel alleen het eerste diploma op basis van diplomajaar.
 }
 \examples{
 basis <- tibble::tibble(

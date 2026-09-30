@@ -18,11 +18,15 @@ bereken_studiewissel(
 
 \item{diploma_behaald}{Tibble zoals gemaakt door \code{\link[=maak_diploma_behaald]{maak_diploma_behaald()}}}
 
-\item{uitval_indicatoren}{Tibble zoals gemaakt door \code{\link[=bereken_uitval]{bereken_uitval()}}}
+\item{uitval_indicatoren}{Tibble zoals gemaakt door \code{\link[=bereken_uitval]{bereken_uitval()}}
+
+Studiewissel is een studentniveau-indicator: \code{cohorten_instroom} moet één
+rij per student bevatten.}
 }
 \value{
 Een tibble met kolommen \code{persoonsgebonden_nummer},
-\code{studiewissel_1jr}, \code{studiewissel_3jr} (factoren) en aanvullende
+\code{studiewissel_1jr}, \code{studiewissel_3jr} (factoren; \code{"Nog niet waarneembaar"} als verblijfsjaar 2 resp. 4 van het cohort nog niet in de
+data zit) en aanvullende
 switch-kolommen met de opleiding, opleidingsvorm, niveau en sector na
 de wissel
 }

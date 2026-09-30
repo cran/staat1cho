@@ -141,3 +141,52 @@ test_that("past tegelijk alle drie filters toe", {
   expect_equal(nrow(result), 1)
   expect_equal(result$persoonsgebonden_nummer, "A")
 })
+
+test_that("maak_basisbestand behoudt voorloopnullen en zet getallen expliciet om", {
+  pad <- tempfile(fileext = ".csv")
+  writeLines(c(
+    paste(
+      "persoonsgebonden_nummer;inschrijvingsjaar;verblijfsjaar_actuele_instelling;",
+      "verblijfsjaar_actuele_opleiding_instelling;diplomajaar;",
+      "leeftijd_per_peildatum_1_oktober;postcodecijfers_student_op_1_oktober;",
+      "postcodecijfers_van_de_hoogste_vooropl_voor_het_ho;",
+      "soort_inschrijving_actuele_instelling;geslacht;opleidingsvorm;",
+      "indicatie_internationale_student;indicatie_eer_actueel;",
+      "croho_onderdeel_actuele_opleiding;soort_diploma_instelling;",
+      "vestigingsnummer_gemeentenaam_volgens_rio",
+      sep = ""
+    ),
+    "012345678;2020;1;1;;021;0010;B-1000;hoofd;vrouw;voltijd;N;N;techniek;;Breda"
+  ), pad)
+
+  basis <- maak_basisbestand(pad)
+
+  expect_identical(basis$persoonsgebonden_nummer, "012345678")
+  expect_identical(basis$leeftijd_per_peildatum_1_oktober, 21L)
+  expect_identical(basis$postcodecijfers_student_op_1_oktober, "0010")
+  ## Buitenlandse/alfanumerieke postcodes blijven behouden in plaats van NA
+  expect_identical(basis$postcodecijfers_van_de_hoogste_vooropl_voor_het_ho, "B-1000")
+  expect_identical(basis$inschrijvingsjaar, 2020L)
+  expect_true(is.na(basis$diplomajaar))
+})
+
+test_that("maak_basisbestand waarschuwt als een getalkolom geen getallen bevat", {
+  pad <- tempfile(fileext = ".csv")
+  writeLines(c(
+    "persoonsgebonden_nummer;inschrijvingsjaar;verblijfsjaar_actuele_instelling;verblijfsjaar_actuele_opleiding_instelling;diplomajaar;soort_inschrijving_actuele_instelling;geslacht;opleidingsvorm;indicatie_internationale_student;indicatie_eer_actueel;croho_onderdeel_actuele_opleiding;soort_diploma_instelling;vestigingsnummer_gemeentenaam_volgens_rio",
+    "1;2020;een;1;;hoofd;vrouw;voltijd;N;N;techniek;;Breda"
+  ), pad)
+
+  expect_warning(maak_basisbestand(pad), "verblijfsjaar_actuele_instelling")
+})
+
+test_that("maak_basisbestand ziet 1cijferho-labels voor code 0 als leeg", {
+  pad <- tempfile(fileext = ".csv")
+  writeLines(c(
+    "persoonsgebonden_nummer;inschrijvingsjaar;verblijfsjaar_actuele_instelling;verblijfsjaar_actuele_opleiding_instelling;diplomajaar;soort_inschrijving_actuele_instelling;geslacht;opleidingsvorm;indicatie_internationale_student;indicatie_eer_actueel;croho_onderdeel_actuele_opleiding;soort_diploma_instelling;vestigingsnummer_gemeentenaam_volgens_rio",
+    "1;2020;1;1;geen examen geregistreerd > 0000 voor overige inschrijvingen;hoofd;vrouw;voltijd;N;N;techniek;;Breda"
+  ), pad)
+
+  expect_no_warning(basis <- maak_basisbestand(pad))
+  expect_true(is.na(basis$diplomajaar))
+})

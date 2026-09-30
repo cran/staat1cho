@@ -244,3 +244,44 @@ test_that("geeft fout bij ongelijk aantal verblijfsjaar 1 en 2 rijen", {
     suffix = "1jr"
   ))
 })
+
+## --- onvolledige cohorten en niveau ---
+
+wissel_cohort <- function(pgn, jaar) {
+  tibble(
+    persoonsgebonden_nummer = pgn,
+    inschrijvingsjaar = jaar,
+    eerstejaar_instelling = jaar,
+    soort_diploma_instelling_label = NA_character_,
+    opleidingsvorm_label = "voltijd"
+  )
+}
+
+geen_diploma_wissel <- tibble(
+  persoonsgebonden_nummer = character(0),
+  jaar_eerste_diploma = integer(0),
+  verblijfsjaar_eerste_diploma = integer(0),
+  diploma = character(0)
+)
+
+test_that("studiewissel is niet waarneembaar als verblijfsjaar 2 of 4 nog niet in de data zit", {
+  ## Data loopt tot en met 2020
+  basisbestand <- maak_wissel_rijen(c("A", "A"), c(1, 2), c("opl1", "opl2"), c(2019, 2020))
+  uitval <- tibble(persoonsgebonden_nummer = "A", uitval_xjr = NA_real_)
+
+  result <- bereken_studiewissel(basisbestand, wissel_cohort("A", 2019), geen_diploma_wissel, uitval)
+
+  expect_equal(as.character(result$studiewissel_1jr), "Gewisseld binnen 1 jaar")
+  expect_equal(as.character(result$studiewissel_3jr), "Nog niet waarneembaar")
+})
+
+test_that("geeft fout bij cohorten op inschrijvingsniveau", {
+  basisbestand <- maak_wissel_rijen(c("A", "A"), c(1, 2), c("opl1", "opl2"), c(2019, 2020))
+  cohort <- bind_rows(wissel_cohort("A", 2019), wissel_cohort("A", 2020))
+  uitval <- tibble(persoonsgebonden_nummer = "A", uitval_xjr = NA_real_)
+
+  expect_error(
+    bereken_studiewissel(basisbestand, cohort, geen_diploma_wissel, uitval),
+    "studentniveau"
+  )
+})

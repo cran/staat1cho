@@ -16,8 +16,15 @@
 #' basis <- suppressMessages(maak_basisbestand(pad))
 #' @export
 maak_basisbestand <- function(pad_invoer) {
-  invoer <- readr::read_csv2(
+  ## Alles als tekst inlezen: readr raadt types op de eerste 1000 rijen, wat
+  ## voorloopnullen in ID's en postcodes ("0010") weggooit en leeftijd ("021")
+  ## soms als tekst en soms als getal oplevert. De numerieke kolommen worden
+  ## hieronder expliciet omgezet.
+  invoer <- readr::read_delim(
     pad_invoer,
+    delim = ";",
+    show_col_types = FALSE,
+    col_types = readr::cols(.default = readr::col_character()),
     locale = readr::locale(encoding = "UTF-8")
   )
 
@@ -27,12 +34,10 @@ maak_basisbestand <- function(pad_invoer) {
     )
   }
 
+  invoer <- zet_om_naar_integer(invoer, INTEGER_KOLOMMEN_1CHO)
+
   invoer |>
     dplyr::mutate(
-      verblijfsjaar_actuele_instelling = as.integer(
-        verblijfsjaar_actuele_instelling
-      ),
-      diplomajaar = suppressWarnings(as.integer(diplomajaar)),
       soort_inschrijving_actuele_instelling_label = soort_inschrijving_actuele_instelling,
       geslacht_label = geslacht,
       opleidingsvorm_label = opleidingsvorm,
@@ -52,10 +57,18 @@ maak_basisbestand <- function(pad_invoer) {
 #' @param basisbestand Tibble zoals gemaakt door [maak_basisbestand()]
 #' @param soort_ho Character vector met toegestane waarden van
 #'   `soort_hoger_onderwijs`, bijv. `c("hoger beroepsonderwijs", "hbo")`
+#' @param niveau Analyseniveau: `"student"` (standaard) of `"inschrijving"`.
+#'   Bij `"student"` is de sleutel `persoonsgebonden_nummer` en wordt gefilterd
+#'   op het eerste jaar aan de instelling (`verblijfsjaar_actuele_instelling`).
+#'   Bij `"inschrijving"` is de sleutel `persoonsgebonden_nummer` +
+#'   `opleiding_actueel_equivalent` en wordt gefilterd op het eerste jaar in de
+#'   specifieke opleiding (`verblijfsjaar_actuele_opleiding_instelling`), zodat
+#'   wisselaars als eerstejaars in hun nieuwe opleiding worden meegenomen.
 #'
-#' @return Een tibble met één rij per student, aangevuld met kolom
-#'   `eerstejaar_instelling` (= inschrijvingsjaar). Gooit een fout als er
-#'   dubbele persoonsgebonden nummers zijn.
+#' @return Een tibble met een rij per student (bij `niveau = "student"`) of per
+#'   student-opleidingcombinatie (bij `niveau = "inschrijving"`), aangevuld met
+#'   kolom `eerstejaar_instelling` (= inschrijvingsjaar). Gooit een fout als er
+#'   dubbele sleutelcombinaties zijn.
 #'
 #' @examples
 #' basis <- tibble::tibble(
@@ -64,24 +77,36 @@ maak_basisbestand <- function(pad_invoer) {
 #'   soort_inschrijving_actuele_instelling_label =
 #'     "hoofdinschrijving binnen het domein actuele instelling",
 #'   verblijfsjaar_actuele_instelling = 1L,
+#'   verblijfsjaar_actuele_opleiding_instelling = 1L,
 #'   inschrijvingsjaar = 2020L,
 #'   soort_diploma_instelling_label = NA_character_
 #' )
 #' maak_instroom_cohort(basis, "hbo")
 #' @export
-maak_instroom_cohort <- function(basisbestand, soort_ho) {
+maak_instroom_cohort <- function(basisbestand, soort_ho, niveau = "student") {
+  ## Bij studentniveau telt het eerste jaar aan de instelling (ongeacht
+  ## opleiding). Bij inschrijvingsniveau telt het eerste jaar in de specifieke
+  ## opleiding, waardoor wisselaars als eerstejaars in hun nieuwe opleiding
+  ## worden meegenomen.
+  verblijfsjaar_col <- if (niveau == "inschrijving") {
+    "verblijfsjaar_actuele_opleiding_instelling"
+  } else {
+    "verblijfsjaar_actuele_instelling"
+  }
+
   cohort <- basisbestand |>
     dplyr::filter(soort_hoger_onderwijs %in% soort_ho) |>
     dplyr::filter(
       soort_inschrijving_actuele_instelling_label ==
         "hoofdinschrijving binnen het domein actuele instelling",
-      verblijfsjaar_actuele_instelling == 1
+      .data[[verblijfsjaar_col]] == 1
     ) |>
     dplyr::mutate(eerstejaar_instelling = inschrijvingsjaar)
 
-  if (any(duplicated(cohort$persoonsgebonden_nummer))) {
+  sleutels <- niveau_sleutels(niveau)
+  if (anyDuplicated(cohort[sleutels]) > 0) {
     rlang::abort(
-      "Dubbele studentnummers in het instroomcohortbestand gevonden!"
+      "Dubbele sleutelcombinaties in het instroomcohortbestand gevonden!"
     )
   }
 

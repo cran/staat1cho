@@ -9,8 +9,13 @@
 #' @param diploma_behaald Tibble zoals gemaakt door [maak_diploma_behaald()]
 #' @param uitval_indicatoren Tibble zoals gemaakt door [bereken_uitval()]
 #'
+#' Studiewissel is een studentniveau-indicator: `cohorten_instroom` moet één
+#' rij per student bevatten.
+#'
 #' @return Een tibble met kolommen `persoonsgebonden_nummer`,
-#'   `studiewissel_1jr`, `studiewissel_3jr` (factoren) en aanvullende
+#'   `studiewissel_1jr`, `studiewissel_3jr` (factoren; `"Nog niet
+#'   waarneembaar"` als verblijfsjaar 2 resp. 4 van het cohort nog niet in de
+#'   data zit) en aanvullende
 #'   switch-kolommen met de opleiding, opleidingsvorm, niveau en sector na
 #'   de wissel
 #'
@@ -51,6 +56,14 @@ bereken_studiewissel <- function(
   diploma_behaald,
   uitval_indicatoren
 ) {
+  if (anyDuplicated(cohorten_instroom$persoonsgebonden_nummer) > 0) {
+    cli::cli_abort(c(
+      "{.arg cohorten_instroom} bevat studenten met meer dan een rij.",
+      "i" = "Studiewissel is alleen te bepalen op studentniveau. Maak het cohort met {.code niveau = \"student\"}."
+    ))
+  }
+  laatste_jaar <- max(basisbestand$inschrijvingsjaar, na.rm = TRUE)
+
   ## Uitval binnen 1 of 3 jaar per student bepalen voor exclusie
   uitval_1_3_jaar <- uitval_indicatoren |>
     dplyr::select(persoonsgebonden_nummer, uitval_xjr) |>
@@ -139,6 +152,20 @@ bereken_studiewissel <- function(
         studiewissel_3jr,
         "Niet gewisseld binnen 3 jaar"
       )
+    ) |>
+    ## Een wissel binnen 1 (3) jaar wordt gemeten in verblijfsjaar 2 (4). Zit
+    ## dat jaar nog niet in de data, dan is "niet gewisseld" onbekend.
+    dplyr::mutate(
+      studiewissel_1jr = factor(dplyr::if_else(
+        eerstejaar_instelling + 1 > laatste_jaar,
+        NIET_WAARNEEMBAAR,
+        as.character(studiewissel_1jr)
+      )),
+      studiewissel_3jr = factor(dplyr::if_else(
+        eerstejaar_instelling + 3 > laatste_jaar,
+        NIET_WAARNEEMBAAR,
+        as.character(studiewissel_3jr)
+      ))
     ) |>
     dplyr::select(
       persoonsgebonden_nummer,

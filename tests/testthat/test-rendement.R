@@ -102,9 +102,12 @@ test_that("bevat de juiste uitvoerkolommen", {
       "persoonsgebonden_nummer",
       "jaar_eerste_diploma",
       "verblijfsjaar_eerste_diploma",
-      "diploma"
+      "diploma",
+      "soort_diploma",
+      "opleidingscode_diploma"
     )
   )
+  expect_equal(result$soort_diploma, BACHELOR_DIPLOMA)
   expect_equal(result$diploma, "Diploma behaald (excl. propedeuse)")
 })
 
@@ -123,7 +126,7 @@ test_that("berekent rendement_xjaar correct", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   ## 2022 - 2019 + 1 = 4
   expect_equal(as.numeric(as.character(result$rendement_xjaar)), 4)
@@ -143,7 +146,7 @@ test_that("categoriseert rendement_3jr correct inclusief grenswaarden", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_equal(
     as.character(result$rendement_3jr[result$persoonsgebonden_nummer == "A"]),
@@ -173,7 +176,7 @@ test_that("categoriseert rendement_5jr correct inclusief grenswaarden", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_equal(
     as.character(result$rendement_5jr[result$persoonsgebonden_nummer == "A"]),
@@ -197,7 +200,7 @@ test_that("categoriseert rendement_8jr correct inclusief grenswaarden", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_equal(
     as.character(result$rendement_8jr[result$persoonsgebonden_nummer == "A"]),
@@ -221,7 +224,7 @@ test_that("geeft 'Geen diploma' voor studenten zonder diploma", {
     diploma = character(0)
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_equal(as.character(result$rendement_3jr), "Geen diploma")
   expect_equal(as.character(result$rendement_5jr), "Geen diploma")
@@ -240,7 +243,7 @@ test_that("geeft factorkolommen terug voor alle rendement-indicatoren", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_true(is.factor(result$rendement_3jr))
   expect_true(is.factor(result$rendement_5jr))
@@ -259,10 +262,74 @@ test_that("markeert als 'Onbekend' als diplomajaar voor instroomjaar ligt", {
     diploma = "Diploma behaald (excl. propedeuse)"
   )
 
-  result <- bereken_rendement(cohorten_instroom, diploma_behaald)
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2099L)
 
   expect_true(grepl(
     "Onbekend",
     as.character(result$rendement_3jr)
   ))
+})
+
+
+## --- inschrijvingsniveau ---
+
+test_that("gebruikt op inschrijvingsniveau het verblijfsjaar in de opleiding", {
+  ## Wisselaar: 1 jaar in 34401, daarna 3 jaar in 39999 en diploma
+  basisbestand <- tibble(
+    persoonsgebonden_nummer = "A",
+    opleiding_actueel_equivalent = "39999",
+    soort_diploma_instelling = BACHELOR_DIPLOMA,
+    diplomajaar = 2023L,
+    verblijfsjaar_actuele_instelling = 4L,
+    verblijfsjaar_actuele_opleiding_instelling = 3L
+  )
+
+  expect_equal(maak_diploma_behaald(basisbestand, "inschrijving")$verblijfsjaar_eerste_diploma, 3L)
+  expect_equal(maak_diploma_behaald(basisbestand, "student")$verblijfsjaar_eerste_diploma, 4L)
+  expect_equal(maak_diploma_behaald(basisbestand)$opleidingscode_diploma, "39999")
+})
+
+## --- onvolledige cohorten ---
+
+test_that("markeert cohorten zonder volledig meetvenster als niet waarneembaar", {
+  cohorten_instroom <- tibble(
+    persoonsgebonden_nummer = c("A", "B", "C"),
+    eerstejaar_instelling = c(2018L, 2021L, 2023L)
+  )
+  diploma_behaald <- tibble(
+    persoonsgebonden_nummer = "B",
+    jaar_eerste_diploma = 2023L,
+    verblijfsjaar_eerste_diploma = 3L,
+    diploma = "Diploma behaald (excl. propedeuse)"
+  )
+
+  result <- bereken_rendement(cohorten_instroom, diploma_behaald, laatste_jaar = 2023L)
+  r3 <- setNames(as.character(result$rendement_3jr), result$persoonsgebonden_nummer)
+  r5 <- setNames(as.character(result$rendement_5jr), result$persoonsgebonden_nummer)
+
+  ## A: 2018 + 3 - 1 = 2020 <= 2023 -> waarneembaar
+  expect_equal(r3[["A"]], "Geen diploma")
+  ## B: 2021 + 3 - 1 = 2023, precies op de grens -> waarneembaar
+  expect_equal(r3[["B"]], "Diploma binnen 3 jaar")
+  ## B: 2021 + 5 - 1 = 2025 > 2023. Ook al heeft B al een diploma: het
+  ## cohort als geheel is nog niet waarneembaar
+  expect_equal(r5[["B"]], "Nog niet waarneembaar")
+  expect_equal(r3[["C"]], "Nog niet waarneembaar")
+})
+
+test_that("leidt laatste_jaar standaard af uit het laatste instroomcohort", {
+  cohorten_instroom <- tibble(
+    persoonsgebonden_nummer = c("A", "B"),
+    eerstejaar_instelling = c(2015L, 2023L)
+  )
+  geen <- tibble(
+    persoonsgebonden_nummer = character(0),
+    jaar_eerste_diploma = integer(0),
+    verblijfsjaar_eerste_diploma = integer(0),
+    diploma = character(0)
+  )
+
+  result <- bereken_rendement(cohorten_instroom, geen)
+
+  expect_equal(as.character(result$rendement_8jr), c("Geen diploma", "Nog niet waarneembaar"))
 })

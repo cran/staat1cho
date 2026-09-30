@@ -4,18 +4,33 @@
 \alias{bereken_rendement}
 \title{Bereken rendementsindicatoren per cohort}
 \usage{
-bereken_rendement(cohorten_instroom, diploma_behaald)
+bereken_rendement(
+  cohorten_instroom,
+  diploma_behaald,
+  niveau = "student",
+  laatste_jaar = NULL
+)
 }
 \arguments{
 \item{cohorten_instroom}{Tibble zoals gemaakt door \code{\link[=maak_instroom_cohort]{maak_instroom_cohort()}}}
 
 \item{diploma_behaald}{Tibble zoals gemaakt door \code{\link[=maak_diploma_behaald]{maak_diploma_behaald()}}}
+
+\item{niveau}{Analyseniveau: \code{"student"} (standaard) of \code{"inschrijving"}.
+Moet overeenkomen met het niveau waarop \code{cohorten_instroom} en
+\code{diploma_behaald} zijn aangemaakt.}
+
+\item{laatste_jaar}{Integer, het laatste inschrijvingsjaar in de data.
+Standaard het laatste instroomjaar in \code{cohorten_instroom}. Cohorten
+waarvoor instroomjaar + x - 1 na dit jaar valt, krijgen voor rendement
+binnen x jaar \code{"Nog niet waarneembaar"}: die studenten hebben nog geen x
+jaar kunnen studeren.}
 }
 \value{
-Een tibble met kolommen \code{persoonsgebonden_nummer},
-\code{eerstejaar_instelling}, \code{jaar_eerste_diploma},
-\code{verblijfsjaar_eerste_diploma}, \code{diploma}, \code{rendement_xjaar},
-en factorkolommen \code{rendement_3jr}, \code{rendement_5jr}, \code{rendement_8jr}
+Een tibble met kolommen voor de sleutel(s), \code{eerstejaar_instelling},
+\code{jaar_eerste_diploma}, \code{verblijfsjaar_eerste_diploma}, \code{diploma},
+\code{soort_diploma}, \code{opleidingscode_diploma}, \code{rendement_xjaar}, en
+factorkolommen \code{rendement_3jr}, \code{rendement_5jr}, \code{rendement_8jr}
 }
 \description{
 Koppelt diplomagegevens aan het instroomcohort en berekent of een student
@@ -32,5 +47,5 @@ diploma <- tibble::tibble(
   verblijfsjaar_eerste_diploma = 3L,
   diploma = "Diploma behaald (excl. propedeuse)"
 )
-bereken_rendement(cohort, diploma)
+bereken_rendement(cohort, diploma, laatste_jaar = 2025L)
 }

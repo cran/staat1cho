@@ -35,108 +35,133 @@ maak_basisbestand()
 
 ## Voorbeeld met synthetische data
 
-In productie begint de pipeline met `maak_basisbestand()`, die het 1CHO CSV-bestand inleest. Hier bouwen we een minibestand handmatig om de stappen te laten zien.
+`maak_synthetische_1cho()` maakt een fictieve instelling met complete studieloopbanen in het formaat van de 1cijferho-enriched output. We schrijven die weg als CSV en lezen hem in zoals je dat met een echte aanlevering doet.
 
-```{r basisbestand}
-library(tibble)
+```{r data}
+synth <- maak_synthetische_1cho(n_per_jaar = 100, jaren = 2014:2023)
+pad <- tempfile(fileext = ".csv")
+readr::write_delim(synth, pad, delim = ";", na = "")
 
-## Drie studenten, twee cohortjaren
-## S1: behaalt diploma in 2022 (binnen 3 jaar na instroom 2020)
-## S2: valt uit na 1 jaar (verschijnt alleen in 2020)
-## S3: wisselt opleiding na 1 jaar (andere opleidingscode in 2021)
-
-hoofd <- "hoofdinschrijving binnen het domein actuele instelling"
-bachelor_diploma <- "Hoofd-bachelor-diploma binnen de actuele instelling"
-
-basisbestand <- tibble(
-  persoonsgebonden_nummer = c("S1", "S1", "S2", "S3", "S3"),
-  inschrijvingsjaar       = c(2020L, 2021L, 2020L, 2020L, 2021L),
-  verblijfsjaar_actuele_instelling = c(1L, 2L, 1L, 1L, 2L),
-  soort_hoger_onderwijs   = "hbo",
-  soort_inschrijving_actuele_instelling = hoofd,
-  soort_inschrijving_actuele_instelling_label = hoofd,
-  diplomajaar             = c(NA_integer_, 2022L, NA_integer_, NA_integer_, NA_integer_),
-  soort_diploma_instelling = c(NA, bachelor_diploma, NA, NA, NA),
-  soort_diploma_instelling_label = c(NA, bachelor_diploma, NA, NA, NA),
-  geslacht_label = "man",
-  opleidingsvorm = "voltijd",
-  opleidingsvorm_label = "voltijd",
-  indicatie_internationale_student_label = "geen internationale student",
-  indicatie_eer_actueel_label = "geen EER-student",
-  croho_onderdeel_actuele_opleiding = "techniek",
-  croho_onderdeel_actuele_opleiding_label = "techniek",
-  opleiding_actueel_equivalent = c("34401", "34401", "34401", "34401", "39999"),
-  type_hoger_onderwijs_binnen_soort_hoger_onderwijs = "ba",
-  leeftijd_per_peildatum_1_oktober = 19L,
-  postcodecijfers_student_op_1_oktober = "4818",
-  postcodecijfers_van_de_hoogste_vooropl_voor_het_ho = "4818",
-  locatie_label = "Breda"
-)
+basis <- maak_basisbestand(pad)
+laatste_jaar <- max(basis$inschrijvingsjaar)
+laatste_jaar
 ```
 
 ### Stap 1: instroomcohort
 
-`maak_instroom_cohort()` filtert op nieuwe eerstejaarsstudenten. Studenten die al eerder waren ingeschreven (verblijfsjaar > 1) vallen af.
+`maak_instroom_cohort()` filtert op nieuwe eerstejaarsstudenten: hoofdinschrijving en verblijfsjaar 1 aan de instelling.
 
 ```{r instroom}
-cohorten <- maak_instroom_cohort(basisbestand, soort_ho = "hbo")
-cohorten[, c("persoonsgebonden_nummer", "inschrijvingsjaar", "eerstejaar_instelling")]
+cohorten <- maak_instroom_cohort(basis, soort_ho = "hoger beroepsonderwijs")
+table(cohorten$inschrijvingsjaar)
 ```
 
-### Stap 2: diploma bepalen
+### Stap 2: diploma en rendement
 
-`maak_diploma_behaald()` zoekt het vroegste diploma per student.
-
-```{r diploma}
-diploma <- maak_diploma_behaald(basisbestand)
-diploma
-```
-
-S1 heeft een diploma in 2022, S2 en S3 niet.
-
-### Stap 3: rendement
-
-`bereken_rendement()` berekent of een student binnen 3, 5 of 8 jaar een diploma heeft behaald.
+`maak_diploma_behaald()` zoekt het vroegste diploma per student, met de opleiding waarin het behaald is. `bereken_rendement()` bepaalt of dat binnen 3, 5 of 8 jaar was.
 
 ```{r rendement}
-rendement <- bereken_rendement(cohorten, diploma)
-rendement[, c("persoonsgebonden_nummer", "rendement_3jr", "rendement_5jr", "rendement_8jr")]
+diploma <- maak_diploma_behaald(basis)
+rendement <- bereken_rendement(cohorten, diploma, laatste_jaar = laatste_jaar)
+table(rendement$eerstejaar_instelling, rendement$rendement_5jr)
 ```
 
-### Stap 4: uitval
+Cohorten vanaf `r laatste_jaar - 3` zitten nog geen 5 jaar in de data. Die studenten krijgen **"Nog niet waarneembaar"** en tellen niet mee in percentages. Zonder deze regel zou het rendement voor recente cohorten kunstmatig instorten.
 
-`bereken_uitval()` bepaalt de status van elke student: diploma behaald, zittend, of uitgevallen.
+### Stap 3: uitval
+
+`bereken_uitval()` bepaalt de status van elke student: diploma behaald, zittend of uitgevallen. Het peiljaar wordt afgeleid uit de data.
 
 ```{r uitval}
-## peiljaar = het jaar na het laatste jaar in de data
-uitval <- bereken_uitval(basisbestand, diploma, cohorten, jaar = 2023L)
-uitval[, c("persoonsgebonden_nummer", "status", "uitval_1jr", "uitval_3jr")]
+uitval <- bereken_uitval(basis, diploma, cohorten)
+table(uitval$status)
 ```
 
-### Stap 5: studiewissel
+### Stap 4: studiewissel
 
 `bereken_studiewissel()` detecteert of een student binnen 1 of 3 jaar van opleiding is gewisseld.
 
 ```{r wissel}
-wissel <- bereken_studiewissel(basisbestand, cohorten, diploma, uitval)
-wissel[, c("persoonsgebonden_nummer", "studiewissel_1jr", "studiewissel_3jr")]
+wissel <- bereken_studiewissel(basis, cohorten, diploma, uitval)
+table(wissel$studiewissel_1jr)
 ```
 
-### Stap 6: combineren
+### Stap 5: combineren
 
 `combineer_indicatoren()` voegt alle stappen samen tot één analysebestand.
 
-```{r combineer, warning = FALSE}
+```{r combineer}
 indicatoren <- combineer_indicatoren(cohorten, rendement, uitval, wissel)
-indicatoren[, c("inschrijvingsjaar", "opleidingscode", "status", "rendement", "uitval", "studiewissel")]
+head(indicatoren[, c("inschrijvingsjaar", "opleidingscode", "status", "rendement", "uitval", "studiewissel")])
+```
+
+## Studentniveau of inschrijvingsniveau?
+
+Op **studentniveau** (standaard) telt een student één keer, in de opleiding waarin die student instroomt. Alle uitkomsten gelden voor de hele instelling: een student die wisselt en in een andere opleiding een diploma haalt, telt bij de instroomopleiding als "Diploma behaald". De kolom `diploma_in_instroomopleiding` laat zien hoe vaak dat gebeurt:
+
+```{r diploma-elders}
+table(indicatoren$diploma_in_instroomopleiding, useNA = "ifany")
+```
+
+Op **inschrijvingsniveau** is elke opleiding een eigen cohort: een wissel telt als uitval uit de oude opleiding en als instroom in de nieuwe. Kies dit niveau als je opleidingen met elkaar wilt vergelijken.
+
+```{r inschrijving}
+cohort_ins <- maak_instroom_cohort(basis, "hoger beroepsonderwijs", niveau = "inschrijving")
+nrow(cohort_ins) - nrow(cohorten)  # extra cohorten door wissels
+```
+
+## Benchmarkrapport
+
+`maak_benchmarkrapport()` aggregeert per sector, opleidingsvorm, niveau en instroomjaar, met privacyonderdrukking van kleine groepen. `schrijf_benchmarkrapport()` slaat het op als Excel met toelichting en metadata.
+
+```{r benchmark}
+rapport <- maak_benchmarkrapport(indicatoren)
+rapport[rapport$sector == "totaal", c("inschrijvingsjaar", "n", "pct_uitval_1jr", "pct_rendement_5jr")]
 ```
 
 ## Dashboard
 
-Voor interactieve verkenning van de data kun je het dashboard starten:
+Voor interactieve verkenning kun je het dashboard starten en het CSV-bestand uploaden:
 
 ```{r dashboard, eval = FALSE}
 start_dashboard()
 ```
 
-Het dashboard vraagt om een 1CHO CSV-bestand en berekent automatisch alle indicatoren. Vanuit het dashboard kun je filteren op jaar, locatie, sector en opleiding, en de gefilterde data downloaden als CSV.
+## Een vast script: pipeline.R
+
+Wil je het rapport elk jaar op precies dezelfde manier maken, zonder door het dashboard te klikken? Download [staat1cho als ZIP](https://github.com/cedanl/staat-van-onderwijsinstelling/archive/refs/heads/main.zip) en open `pipeline.R` in RStudio. Vul bovenin het pad naar je `_enriched.csv` in (met `/`, ook op Windows):
+
+```{r pipeline, eval = FALSE}
+pad_1cho    <- "C:/Tools/1cijferho/data/02-output/EV21PL24_enriched.csv"
+niveau      <- "student"    # of "inschrijving"
+vakhawv_pad <- ""           # pad naar VAKHAVW..._decoded.csv, of leeg
+vlpbek_pad  <- ""           # nog leeg laten
+```
+
+Kies *Session* > *Set Working Directory* > *To Source File Location* en klik op **Source**. De pipeline zet het benchmarkrapport en de tussenbestanden in de map `Output/<jaar>` naast `pipeline.R`.
+
+## Overzicht van de functies
+
+| Functie | Wat het doet |
+|---|---|
+| `start_dashboard()` | Start het interactieve Shiny-dashboard |
+| `maak_basisbestand()` | Laadt het 1CHO-bestand en voegt labelkolommen toe |
+| `maak_instroom_cohort()` | Maakt het cohortbestand aan (nieuwe instromers) |
+| `maak_diploma_behaald()` | Bepaalt diplomaresultaten per student |
+| `bereken_rendement()` | Rendement binnen 3, 5 en 8 jaar |
+| `bereken_uitval()` | Uitvalstatus binnen 1 en 3 jaar |
+| `bereken_studiewissel()` | Studiewissel binnen 1 en 3 jaar |
+| `combineer_indicatoren()` | Voegt alle indicatoren samen, met vooropleiding, eerstejaars HO en het attribuut `peildatum` |
+| `lees_vakhawv()` / `verrijk_met_vakhawv()` | Leest VAKHAVW-vakcijfers en koppelt ze per student |
+| `lees_bekostiging()` / `verrijk_met_bekostiging()` | Leest een VLPBEK-bestand en koppelt de bekostigingsstatus (koppelt nog niet aan echte EV-bestanden, zie `?lees_bekostiging`) |
+| `is_gepseudonimiseerd()` | Herkent gepseudonimiseerde persoonsnummers |
+| `maak_benchmarkrapport()` | Geaggregeerd rapport met peildatum en privacyonderdrukking (groepen < 30, cellen < 5) |
+| `schrijf_benchmarkrapport()` | Slaat het benchmarkrapport op als Excel met toelichting, validatie en metadata |
+| `maak_synthetische_1cho()` | Synthetisch 1CHO-bestand met bekende uitkomsten voor demo en validatie |
+| `DEFINITIES`, `BEKOSTIGINGSTATUS_CODES` | Definities van de indicatoren en de DUO-redencodes |
+
+## Invoer
+
+staat1cho verwacht de `_enriched.csv` van 1cijferho: puntkomma-gescheiden, UTF-8, kolomnamen in snake_case. Het dashboard controleert na het uploaden of de verplichte kolommen aanwezig zijn. De kolommen `hoogste_vooropleiding_voor_het_ho_omschrijving_vooropleiding` en `eerste_jaar_in_het_hoger_onderwijs` zijn optioneel; zonder die kolommen worden vooropleiding en eerstejaars HO "onbekend".
+
+Het package vraagt R 4.1.0 of nieuwer. Voor het dashboard zijn daarnaast `bslib`, `DT`, `ggplot2`, `plotly`, `scales`, `tidyr` en `writexl` nodig.

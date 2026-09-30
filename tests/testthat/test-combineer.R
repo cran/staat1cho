@@ -80,14 +80,12 @@ maak_input <- function(
 }
 
 roep_combineer <- function(inp) {
-  ## suppressWarnings: fct_recode waarschuwt over ontbrekende niveaus in testdata
-  ## die in productie wel aanwezig zijn omdat de factor alle mogelijke waarden bevat
-  suppressWarnings(combineer_indicatoren(
+  combineer_indicatoren(
     inp$cohorten_instroom,
     inp$rendement_indicatoren,
     inp$uitval_indicatoren,
     inp$studiewissel_indicatoren
-  ))
+  )
 }
 
 ## --- uitvoerstructuur ---
@@ -245,4 +243,44 @@ test_that("bepaalt rendement correct op basis van rendement_5jr en _8jr", {
   expect_equal(r2$rendement, "Diploma binnen 5-8 jaar")
   expect_equal(r3$rendement, "Diploma na 8 jaar")
   expect_equal(r4$rendement, "Geen diploma")
+})
+
+
+## --- geen waarschuwingen over ontbrekende niveaus ---
+
+test_that("geeft geen waarschuwing als te hercoderen niveaus ontbreken", {
+  inp <- maak_input()
+  expect_no_warning(combineer_indicatoren(
+    inp$cohorten_instroom,
+    inp$rendement_indicatoren,
+    inp$uitval_indicatoren,
+    inp$studiewissel_indicatoren
+  ))
+})
+
+## --- diploma in instroomopleiding (#45) ---
+
+test_that("markeert of het diploma in de instroomopleiding is behaald", {
+  inp <- maak_input(pgn = c("A", "B", "C"))
+  inp$cohorten_instroom$opleiding_actueel_equivalent <- "12345"
+  inp$rendement_indicatoren$soort_diploma <- c(BACHELOR_DIPLOMA, BACHELOR_DIPLOMA, NA)
+  inp$rendement_indicatoren$opleidingscode_diploma <- c("12345", "99999", NA)
+
+  result <- roep_combineer(inp)
+
+  expect_equal(result$diploma_in_instroomopleiding, c(TRUE, FALSE, NA))
+  expect_equal(as.character(result$opleidingscode_diploma), c("12345", "99999", NA))
+  expect_equal(result$soortdiploma, c(BACHELOR_DIPLOMA, BACHELOR_DIPLOMA, NA))
+  expect_equal(attr(result, "niveau"), "student")
+})
+
+test_that("vat niet-waarneembare rendement en studiewissel samen", {
+  result <- roep_combineer(maak_input(
+    rendement_3jr = "Nog niet waarneembaar",
+    rendement_5jr = "Nog niet waarneembaar",
+    rendement_8jr = "Nog niet waarneembaar",
+    studiewissel_3jr = "Nog niet waarneembaar"
+  ))
+  expect_equal(result$rendement, "Nog niet waarneembaar")
+  expect_equal(result$studiewissel, "Nog niet waarneembaar")
 })

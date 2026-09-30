@@ -8,7 +8,8 @@ combineer_indicatoren(
   cohorten_instroom,
   rendement_indicatoren,
   uitval_indicatoren,
-  studiewissel_indicatoren
+  studiewissel_indicatoren = NULL,
+  niveau = "student"
 )
 }
 \arguments{
@@ -19,16 +20,34 @@ combineer_indicatoren(
 \item{uitval_indicatoren}{Tibble zoals gemaakt door \code{\link[=bereken_uitval]{bereken_uitval()}}}
 
 \item{studiewissel_indicatoren}{Tibble zoals gemaakt door
-\code{\link[=bereken_studiewissel]{bereken_studiewissel()}}}
+\code{\link[=bereken_studiewissel]{bereken_studiewissel()}}, of \code{NULL}. Studiewissel is een
+studentniveau-concept en alleen van toepassing bij
+\code{niveau = "student"}. Geef \code{NULL} door bij inschrijvingsniveau.}
+
+\item{niveau}{Analyseniveau: \code{"student"} (standaard) of \code{"inschrijving"}.
+Moet overeenkomen met het niveau waarop de andere invoertibbles zijn
+aangemaakt.}
 }
 \value{
-Een tibble met een rij per student en gecombineerde indicator-
-kolommen, klaar voor rapportage. Bevat o.a. \code{status}, \code{rendement},
-\code{uitval}, \code{studiewissel} en alle onderliggende deelscores.
+Een tibble met gecombineerde indicatorkolommen, klaar voor
+rapportage. Bevat o.a. \code{status}, \code{rendement}, \code{uitval} en alle
+onderliggende deelscores. Bij \code{niveau = "student"} zijn ook
+studiewisselkolommen aanwezig als \code{studiewissel_indicatoren} is meegegeven.
+
+\code{vooropleiding} vat de hoogste vooropleiding voor het HO samen (havo,
+vwo, mbo, ho, buitenlands, overig of onbekend). \code{eerstejaars_ho} geeft
+aan of het instroomjaar ook het eerste jaar in het hoger onderwijs is
+(\code{"eerstejaars HO"}) of dat de student al eerder in het HO stond
+(\code{"eerder in HO"}). Beide zijn \code{"onbekend"} als de 1CHO-kolommen
+\code{hoogste_vooropleiding_voor_het_ho_omschrijving_vooropleiding} resp.
+\code{eerste_jaar_in_het_hoger_onderwijs} ontbreken.
+
+Attributen: \code{niveau} en \code{peildatum} (1 oktober van het laatste
+inschrijvingsjaar in de data, zie \code{\link[=maak_benchmarkrapport]{maak_benchmarkrapport()}}).
 }
 \description{
-Voegt rendement-, uitval- en studiewisselindicatoren samen met het
-instroomcohort. Past kolomnamen en factorniveaus aan voor gebruik in
+Voegt rendement-, uitval- en (optioneel) studiewisselindicatoren samen met
+het instroomcohort. Past kolomnamen en factorniveaus aan voor gebruik in
 rapportages.
 }
 \examples{

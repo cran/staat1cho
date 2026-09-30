@@ -367,132 +367,270 @@ vorige.</p>
 </div>
 <div id="voorbeeld-met-synthetische-data" class="section level2">
 <h2>Voorbeeld met synthetische data</h2>
-<p>In productie begint de pipeline met <code>maak_basisbestand()</code>,
-die het 1CHO CSV-bestand inleest. Hier bouwen we een minibestand
-handmatig om de stappen te laten zien.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="do">## Drie studenten, twee cohortjaren</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="do">## S1: behaalt diploma in 2022 (binnen 3 jaar na instroom 2020)</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="do">## S2: valt uit na 1 jaar (verschijnt alleen in 2020)</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="do">## S3: wisselt opleiding na 1 jaar (andere opleidingscode in 2021)</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>hoofd <span class="ot">&lt;-</span> <span class="st">&quot;hoofdinschrijving binnen het domein actuele instelling&quot;</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>bachelor_diploma <span class="ot">&lt;-</span> <span class="st">&quot;Hoofd-bachelor-diploma binnen de actuele instelling&quot;</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>basisbestand <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="at">persoonsgebonden_nummer =</span> <span class="fu">c</span>(<span class="st">&quot;S1&quot;</span>, <span class="st">&quot;S1&quot;</span>, <span class="st">&quot;S2&quot;</span>, <span class="st">&quot;S3&quot;</span>, <span class="st">&quot;S3&quot;</span>),</span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="at">inschrijvingsjaar       =</span> <span class="fu">c</span>(<span class="dv">2020</span><span class="dt">L</span>, <span class="dv">2021</span><span class="dt">L</span>, <span class="dv">2020</span><span class="dt">L</span>, <span class="dv">2020</span><span class="dt">L</span>, <span class="dv">2021</span><span class="dt">L</span>),</span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>  <span class="at">verblijfsjaar_actuele_instelling =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">2</span><span class="dt">L</span>, <span class="dv">1</span><span class="dt">L</span>, <span class="dv">1</span><span class="dt">L</span>, <span class="dv">2</span><span class="dt">L</span>),</span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  <span class="at">soort_hoger_onderwijs   =</span> <span class="st">&quot;hbo&quot;</span>,</span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  <span class="at">soort_inschrijving_actuele_instelling =</span> hoofd,</span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>  <span class="at">soort_inschrijving_actuele_instelling_label =</span> hoofd,</span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>  <span class="at">diplomajaar             =</span> <span class="fu">c</span>(<span class="cn">NA_integer_</span>, <span class="dv">2022</span><span class="dt">L</span>, <span class="cn">NA_integer_</span>, <span class="cn">NA_integer_</span>, <span class="cn">NA_integer_</span>),</span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>  <span class="at">soort_diploma_instelling =</span> <span class="fu">c</span>(<span class="cn">NA</span>, bachelor_diploma, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>  <span class="at">soort_diploma_instelling_label =</span> <span class="fu">c</span>(<span class="cn">NA</span>, bachelor_diploma, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>  <span class="at">geslacht_label =</span> <span class="st">&quot;man&quot;</span>,</span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>  <span class="at">opleidingsvorm =</span> <span class="st">&quot;voltijd&quot;</span>,</span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>  <span class="at">opleidingsvorm_label =</span> <span class="st">&quot;voltijd&quot;</span>,</span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>  <span class="at">indicatie_internationale_student_label =</span> <span class="st">&quot;geen internationale student&quot;</span>,</span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>  <span class="at">indicatie_eer_actueel_label =</span> <span class="st">&quot;geen EER-student&quot;</span>,</span>
-<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>  <span class="at">croho_onderdeel_actuele_opleiding =</span> <span class="st">&quot;techniek&quot;</span>,</span>
-<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>  <span class="at">croho_onderdeel_actuele_opleiding_label =</span> <span class="st">&quot;techniek&quot;</span>,</span>
-<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>  <span class="at">opleiding_actueel_equivalent =</span> <span class="fu">c</span>(<span class="st">&quot;34401&quot;</span>, <span class="st">&quot;34401&quot;</span>, <span class="st">&quot;34401&quot;</span>, <span class="st">&quot;34401&quot;</span>, <span class="st">&quot;39999&quot;</span>),</span>
-<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a>  <span class="at">type_hoger_onderwijs_binnen_soort_hoger_onderwijs =</span> <span class="st">&quot;ba&quot;</span>,</span>
-<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a>  <span class="at">leeftijd_per_peildatum_1_oktober =</span> <span class="dv">19</span><span class="dt">L</span>,</span>
-<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a>  <span class="at">postcodecijfers_student_op_1_oktober =</span> <span class="st">&quot;4818&quot;</span>,</span>
-<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a>  <span class="at">postcodecijfers_van_de_hoogste_vooropl_voor_het_ho =</span> <span class="st">&quot;4818&quot;</span>,</span>
-<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a>  <span class="at">locatie_label =</span> <span class="st">&quot;Breda&quot;</span></span>
-<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>maak_synthetische_1cho()</code> maakt een fictieve instelling
+met complete studieloopbanen in het formaat van de 1cijferho-enriched
+output. We schrijven die weg als CSV en lezen hem in zoals je dat met
+een echte aanlevering doet.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>synth <span class="ot">&lt;-</span> <span class="fu">maak_synthetische_1cho</span>(<span class="at">n_per_jaar =</span> <span class="dv">100</span>, <span class="at">jaren =</span> <span class="dv">2014</span><span class="sc">:</span><span class="dv">2023</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>pad <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">&quot;.csv&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>readr<span class="sc">::</span><span class="fu">write_delim</span>(synth, pad, <span class="at">delim =</span> <span class="st">&quot;;&quot;</span>, <span class="at">na =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>basis <span class="ot">&lt;-</span> <span class="fu">maak_basisbestand</span>(pad)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>laatste_jaar <span class="ot">&lt;-</span> <span class="fu">max</span>(basis<span class="sc">$</span>inschrijvingsjaar)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>laatste_jaar</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; [1] 2023</span></span></code></pre></div>
 <div id="stap-1-instroomcohort" class="section level3">
 <h3>Stap 1: instroomcohort</h3>
 <p><code>maak_instroom_cohort()</code> filtert op nieuwe
-eerstejaarsstudenten. Studenten die al eerder waren ingeschreven
-(verblijfsjaar &gt; 1) vallen af.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>cohorten <span class="ot">&lt;-</span> <span class="fu">maak_instroom_cohort</span>(basisbestand, <span class="at">soort_ho =</span> <span class="st">&quot;hbo&quot;</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>cohorten[, <span class="fu">c</span>(<span class="st">&quot;persoonsgebonden_nummer&quot;</span>, <span class="st">&quot;inschrijvingsjaar&quot;</span>, <span class="st">&quot;eerstejaar_instelling&quot;</span>)]</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 3</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   persoonsgebonden_nummer inschrijvingsjaar eerstejaar_instelling</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                               &lt;int&gt;                 &lt;int&gt;</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 1 S1                                   2020                  2020</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 2 S2                                   2020                  2020</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 3 S3                                   2020                  2020</span></span></code></pre></div>
+eerstejaarsstudenten: hoofdinschrijving en verblijfsjaar 1 aan de
+instelling.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>cohorten <span class="ot">&lt;-</span> <span class="fu">maak_instroom_cohort</span>(basis, <span class="at">soort_ho =</span> <span class="st">&quot;hoger beroepsonderwijs&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">table</span>(cohorten<span class="sc">$</span>inschrijvingsjaar)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 </span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;  100  100  100  100  100  100  100  100  100  100</span></span></code></pre></div>
 </div>
-<div id="stap-2-diploma-bepalen" class="section level3">
-<h3>Stap 2: diploma bepalen</h3>
+<div id="stap-2-diploma-en-rendement" class="section level3">
+<h3>Stap 2: diploma en rendement</h3>
 <p><code>maak_diploma_behaald()</code> zoekt het vroegste diploma per
-student.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>diploma <span class="ot">&lt;-</span> <span class="fu">maak_diploma_behaald</span>(basisbestand)</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>diploma</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 4</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;   persoonsgebonden_nummer jaar_eerste_diploma verblijfsjaar_eerste_dip…¹ diploma</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                 &lt;int&gt;                      &lt;int&gt; &lt;chr&gt;  </span></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; 1 S1                                     2022                          2 Diplom…</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; # ℹ abbreviated name: ¹​verblijfsjaar_eerste_diploma</span></span></code></pre></div>
-<p>S1 heeft een diploma in 2022, S2 en S3 niet.</p>
+student, met de opleiding waarin het behaald is.
+<code>bereken_rendement()</code> bepaalt of dat binnen 3, 5 of 8 jaar
+was.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>diploma <span class="ot">&lt;-</span> <span class="fu">maak_diploma_behaald</span>(basis)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>rendement <span class="ot">&lt;-</span> <span class="fu">bereken_rendement</span>(cohorten, diploma, <span class="at">laatste_jaar =</span> laatste_jaar)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">table</span>(rendement<span class="sc">$</span>eerstejaar_instelling, rendement<span class="sc">$</span>rendement_5jr)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;       </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;        Diploma binnen 5 jaar Diploma na 5 jaar Geen diploma</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;   2014                    66                14           20</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;   2015                    61                18           21</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   2016                    57                12           31</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;   2017                    57                19           24</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;   2018                    52                20           28</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;   2019                    58                 0           42</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;   2020                     0                 0            0</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;   2021                     0                 0            0</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;   2022                     0                 0            0</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   2023                     0                 0            0</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;       </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;        Nog niet waarneembaar</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;   2014                     0</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;   2015                     0</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;   2016                     0</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;   2017                     0</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;   2018                     0</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt;   2019                     0</span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt;   2020                   100</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt;   2021                   100</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt;   2022                   100</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;   2023                   100</span></span></code></pre></div>
+<p>Cohorten vanaf 2020 zitten nog geen 5 jaar in de data. Die studenten
+krijgen <strong>“Nog niet waarneembaar”</strong> en tellen niet mee in
+percentages. Zonder deze regel zou het rendement voor recente cohorten
+kunstmatig instorten.</p>
 </div>
-<div id="stap-3-rendement" class="section level3">
-<h3>Stap 3: rendement</h3>
-<p><code>bereken_rendement()</code> berekent of een student binnen 3, 5
-of 8 jaar een diploma heeft behaald.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>rendement <span class="ot">&lt;-</span> <span class="fu">bereken_rendement</span>(cohorten, diploma)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>rendement[, <span class="fu">c</span>(<span class="st">&quot;persoonsgebonden_nummer&quot;</span>, <span class="st">&quot;rendement_3jr&quot;</span>, <span class="st">&quot;rendement_5jr&quot;</span>, <span class="st">&quot;rendement_8jr&quot;</span>)]</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 4</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;   persoonsgebonden_nummer rendement_3jr         rendement_5jr      rendement_8jr</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;fct&gt;                 &lt;fct&gt;              &lt;fct&gt;        </span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 1 S1                      Diploma binnen 3 jaar Diploma binnen 5 … Diploma binn…</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 2 S2                      Geen diploma          Geen diploma       Geen diploma </span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 3 S3                      Geen diploma          Geen diploma       Geen diploma</span></span></code></pre></div>
-</div>
-<div id="stap-4-uitval" class="section level3">
-<h3>Stap 4: uitval</h3>
+<div id="stap-3-uitval" class="section level3">
+<h3>Stap 3: uitval</h3>
 <p><code>bereken_uitval()</code> bepaalt de status van elke student:
-diploma behaald, zittend, of uitgevallen.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="do">## peiljaar = het jaar na het laatste jaar in de data</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>uitval <span class="ot">&lt;-</span> <span class="fu">bereken_uitval</span>(basisbestand, diploma, cohorten, <span class="at">jaar =</span> <span class="dv">2023</span><span class="dt">L</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>uitval[, <span class="fu">c</span>(<span class="st">&quot;persoonsgebonden_nummer&quot;</span>, <span class="st">&quot;status&quot;</span>, <span class="st">&quot;uitval_1jr&quot;</span>, <span class="st">&quot;uitval_3jr&quot;</span>)]</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 4</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;   persoonsgebonden_nummer status          uitval_1jr                  uitval_3jr</span></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;fct&gt;           &lt;fct&gt;                       &lt;fct&gt;     </span></span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 1 S1                      Diploma behaald Na 1 jaar nog ingeschreven… Na 3 jaar…</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 2 S2                      Uitgevallen     Uitgevallen binnen 1 jaar   Uitgevall…</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 3 S3                      Uitgevallen     Na 1 jaar nog ingeschreven… Uitgevall…</span></span></code></pre></div>
+diploma behaald, zittend of uitgevallen. Het peiljaar wordt afgeleid uit
+de data.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>uitval <span class="ot">&lt;-</span> <span class="fu">bereken_uitval</span>(basis, diploma, cohorten)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">table</span>(uitval<span class="sc">$</span>status)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; Diploma behaald     Uitgevallen         Zittend </span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;             479             201             320</span></span></code></pre></div>
 </div>
-<div id="stap-5-studiewissel" class="section level3">
-<h3>Stap 5: studiewissel</h3>
+<div id="stap-4-studiewissel" class="section level3">
+<h3>Stap 4: studiewissel</h3>
 <p><code>bereken_studiewissel()</code> detecteert of een student binnen
 1 of 3 jaar van opleiding is gewisseld.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>wissel <span class="ot">&lt;-</span> <span class="fu">bereken_studiewissel</span>(basisbestand, cohorten, diploma, uitval)</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>wissel[, <span class="fu">c</span>(<span class="st">&quot;persoonsgebonden_nummer&quot;</span>, <span class="st">&quot;studiewissel_1jr&quot;</span>, <span class="st">&quot;studiewissel_3jr&quot;</span>)]</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 3</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   persoonsgebonden_nummer studiewissel_1jr             studiewissel_3jr   </span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                   &lt;fct&gt;                        &lt;fct&gt;              </span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 1 S1                      Niet gewisseld binnen 1 jaar Geen switch bepaald</span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; 2 S2                      Geen switch bepaald          Geen switch bepaald</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 3 S3                      Gewisseld binnen 1 jaar      Geen switch bepaald</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>wissel <span class="ot">&lt;-</span> <span class="fu">bereken_studiewissel</span>(basis, cohorten, diploma, uitval)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">table</span>(wissel<span class="sc">$</span>studiewissel_1jr)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;          Geen switch bepaald      Gewisseld binnen 1 jaar </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;                          131                           79 </span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Niet gewisseld binnen 1 jaar        Nog niet waarneembaar </span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;                          690                          100</span></span></code></pre></div>
 </div>
-<div id="stap-6-combineren" class="section level3">
-<h3>Stap 6: combineren</h3>
+<div id="stap-5-combineren" class="section level3">
+<h3>Stap 5: combineren</h3>
 <p><code>combineer_indicatoren()</code> voegt alle stappen samen tot één
 analysebestand.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>indicatoren <span class="ot">&lt;-</span> <span class="fu">combineer_indicatoren</span>(cohorten, rendement, uitval, wissel)</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>indicatoren[, <span class="fu">c</span>(<span class="st">&quot;inschrijvingsjaar&quot;</span>, <span class="st">&quot;opleidingscode&quot;</span>, <span class="st">&quot;status&quot;</span>, <span class="st">&quot;rendement&quot;</span>, <span class="st">&quot;uitval&quot;</span>, <span class="st">&quot;studiewissel&quot;</span>)]</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 6</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;   inschrijvingsjaar opleidingscode status          rendement uitval studiewissel</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;               &lt;int&gt; &lt;fct&gt;          &lt;fct&gt;           &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;       </span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; 1              2020 34401          Diploma behaald Diploma … Niet … Niet gewiss…</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 2              2020 34401          Uitgevallen     Geen dip… Uitge… Niet gewiss…</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 3              2020 34401          Uitgevallen     Geen dip… Uitge… Gewisseld b…</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>indicatoren <span class="ot">&lt;-</span> <span class="fu">combineer_indicatoren</span>(cohorten, rendement, uitval, wissel)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">head</span>(indicatoren[, <span class="fu">c</span>(<span class="st">&quot;inschrijvingsjaar&quot;</span>, <span class="st">&quot;opleidingscode&quot;</span>, <span class="st">&quot;status&quot;</span>, <span class="st">&quot;rendement&quot;</span>, <span class="st">&quot;uitval&quot;</span>, <span class="st">&quot;studiewissel&quot;</span>)])</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   inschrijvingsjaar opleidingscode status          rendement uitval studiewissel</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;               &lt;int&gt; &lt;fct&gt;          &lt;fct&gt;           &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;       </span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 1              2014 35501          Diploma behaald Diploma … Niet … Niet gewiss…</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; 2              2014 34401          Diploma behaald Diploma … Niet … Niet gewiss…</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 3              2014 35501          Diploma behaald Diploma … Niet … Niet gewiss…</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 4              2014 35501          Diploma behaald Diploma … Niet … Niet gewiss…</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 5              2014 34402          Uitgevallen     Geen dip… Uitge… Niet gewiss…</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; 6              2014 34401          Diploma behaald Diploma … Niet … Gewisseld b…</span></span></code></pre></div>
 </div>
+</div>
+<div id="studentniveau-of-inschrijvingsniveau" class="section level2">
+<h2>Studentniveau of inschrijvingsniveau?</h2>
+<p>Op <strong>studentniveau</strong> (standaard) telt een student één
+keer, in de opleiding waarin die student instroomt. Alle uitkomsten
+gelden voor de hele instelling: een student die wisselt en in een andere
+opleiding een diploma haalt, telt bij de instroomopleiding als “Diploma
+behaald”. De kolom <code>diploma_in_instroomopleiding</code> laat zien
+hoe vaak dat gebeurt:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">table</span>(indicatoren<span class="sc">$</span>diploma_in_instroomopleiding, <span class="at">useNA =</span> <span class="st">&quot;ifany&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; FALSE  TRUE  &lt;NA&gt; </span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;    50   429   521</span></span></code></pre></div>
+<p>Op <strong>inschrijvingsniveau</strong> is elke opleiding een eigen
+cohort: een wissel telt als uitval uit de oude opleiding en als instroom
+in de nieuwe. Kies dit niveau als je opleidingen met elkaar wilt
+vergelijken.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>cohort_ins <span class="ot">&lt;-</span> <span class="fu">maak_instroom_cohort</span>(basis, <span class="st">&quot;hoger beroepsonderwijs&quot;</span>, <span class="at">niveau =</span> <span class="st">&quot;inschrijving&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">nrow</span>(cohort_ins) <span class="sc">-</span> <span class="fu">nrow</span>(cohorten)  <span class="co"># extra cohorten door wissels</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; [1] 79</span></span></code></pre></div>
+</div>
+<div id="benchmarkrapport" class="section level2">
+<h2>Benchmarkrapport</h2>
+<p><code>maak_benchmarkrapport()</code> aggregeert per sector,
+opleidingsvorm, niveau en instroomjaar, met privacyonderdrukking van
+kleine groepen. <code>schrijf_benchmarkrapport()</code> slaat het op als
+Excel met toelichting en metadata.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>rapport <span class="ot">&lt;-</span> <span class="fu">maak_benchmarkrapport</span>(indicatoren)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>rapport[rapport<span class="sc">$</span>sector <span class="sc">==</span> <span class="st">&quot;totaal&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;inschrijvingsjaar&quot;</span>, <span class="st">&quot;n&quot;</span>, <span class="st">&quot;pct_uitval_1jr&quot;</span>, <span class="st">&quot;pct_rendement_5jr&quot;</span>)]</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 10 × 4</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;    inschrijvingsjaar     n pct_uitval_1jr pct_rendement_5jr</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt;                &lt;int&gt; &lt;dbl&gt;          &lt;dbl&gt;             &lt;dbl&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;  1              2014   100             11                66</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;  2              2015   100             11                61</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt;  3              2016   100             18                57</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;  4              2017   100             13                57</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt;  5              2018   100             17                52</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt;  6              2019   100             13                58</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt;  7              2020   100             13                NA</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt;  8              2021   100             15                NA</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt;  9              2022   100             20                NA</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; 10              2023   100             NA                NA</span></span></code></pre></div>
 </div>
 <div id="dashboard" class="section level2">
 <h2>Dashboard</h2>
-<p>Voor interactieve verkenning van de data kun je het dashboard
-starten:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">start_dashboard</span>()</span></code></pre></div>
-<p>Het dashboard vraagt om een 1CHO CSV-bestand en berekent automatisch
-alle indicatoren. Vanuit het dashboard kun je filteren op jaar, locatie,
-sector en opleiding, en de gefilterde data downloaden als CSV.</p>
+<p>Voor interactieve verkenning kun je het dashboard starten en het
+CSV-bestand uploaden:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">start_dashboard</span>()</span></code></pre></div>
+</div>
+<div id="een-vast-script-pipeline.r" class="section level2">
+<h2>Een vast script: pipeline.R</h2>
+<p>Wil je het rapport elk jaar op precies dezelfde manier maken, zonder
+door het dashboard te klikken? Download <a href="https://github.com/cedanl/staat-van-onderwijsinstelling/archive/refs/heads/main.zip">staat1cho
+als ZIP</a> en open <code>pipeline.R</code> in RStudio. Vul bovenin het
+pad naar je <code>_enriched.csv</code> in (met <code>/</code>, ook op
+Windows):</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>pad_1cho    <span class="ot">&lt;-</span> <span class="st">&quot;C:/Tools/1cijferho/data/02-output/EV21PL24_enriched.csv&quot;</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>niveau      <span class="ot">&lt;-</span> <span class="st">&quot;student&quot;</span>    <span class="co"># of &quot;inschrijving&quot;</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>vakhawv_pad <span class="ot">&lt;-</span> <span class="st">&quot;&quot;</span>           <span class="co"># pad naar VAKHAVW..._decoded.csv, of leeg</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>vlpbek_pad  <span class="ot">&lt;-</span> <span class="st">&quot;&quot;</span>           <span class="co"># nog leeg laten</span></span></code></pre></div>
+<p>Kies <em>Session</em> &gt; <em>Set Working Directory</em> &gt; <em>To
+Source File Location</em> en klik op <strong>Source</strong>. De
+pipeline zet het benchmarkrapport en de tussenbestanden in de map
+<code>Output/&lt;jaar&gt;</code> naast <code>pipeline.R</code>.</p>
+</div>
+<div id="overzicht-van-de-functies" class="section level2">
+<h2>Overzicht van de functies</h2>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Functie</th>
+<th>Wat het doet</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>start_dashboard()</code></td>
+<td>Start het interactieve Shiny-dashboard</td>
+</tr>
+<tr class="even">
+<td><code>maak_basisbestand()</code></td>
+<td>Laadt het 1CHO-bestand en voegt labelkolommen toe</td>
+</tr>
+<tr class="odd">
+<td><code>maak_instroom_cohort()</code></td>
+<td>Maakt het cohortbestand aan (nieuwe instromers)</td>
+</tr>
+<tr class="even">
+<td><code>maak_diploma_behaald()</code></td>
+<td>Bepaalt diplomaresultaten per student</td>
+</tr>
+<tr class="odd">
+<td><code>bereken_rendement()</code></td>
+<td>Rendement binnen 3, 5 en 8 jaar</td>
+</tr>
+<tr class="even">
+<td><code>bereken_uitval()</code></td>
+<td>Uitvalstatus binnen 1 en 3 jaar</td>
+</tr>
+<tr class="odd">
+<td><code>bereken_studiewissel()</code></td>
+<td>Studiewissel binnen 1 en 3 jaar</td>
+</tr>
+<tr class="even">
+<td><code>combineer_indicatoren()</code></td>
+<td>Voegt alle indicatoren samen, met vooropleiding, eerstejaars HO en
+het attribuut <code>peildatum</code></td>
+</tr>
+<tr class="odd">
+<td><code>lees_vakhawv()</code> /
+<code>verrijk_met_vakhawv()</code></td>
+<td>Leest VAKHAVW-vakcijfers en koppelt ze per student</td>
+</tr>
+<tr class="even">
+<td><code>lees_bekostiging()</code> /
+<code>verrijk_met_bekostiging()</code></td>
+<td>Leest een VLPBEK-bestand en koppelt de bekostigingsstatus (koppelt
+nog niet aan echte EV-bestanden, zie
+<code>?lees_bekostiging</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>is_gepseudonimiseerd()</code></td>
+<td>Herkent gepseudonimiseerde persoonsnummers</td>
+</tr>
+<tr class="even">
+<td><code>maak_benchmarkrapport()</code></td>
+<td>Geaggregeerd rapport met peildatum en privacyonderdrukking (groepen
+&lt; 30, cellen &lt; 5)</td>
+</tr>
+<tr class="odd">
+<td><code>schrijf_benchmarkrapport()</code></td>
+<td>Slaat het benchmarkrapport op als Excel met toelichting, validatie
+en metadata</td>
+</tr>
+<tr class="even">
+<td><code>maak_synthetische_1cho()</code></td>
+<td>Synthetisch 1CHO-bestand met bekende uitkomsten voor demo en
+validatie</td>
+</tr>
+<tr class="odd">
+<td><code>DEFINITIES</code>, <code>BEKOSTIGINGSTATUS_CODES</code></td>
+<td>Definities van de indicatoren en de DUO-redencodes</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="invoer" class="section level2">
+<h2>Invoer</h2>
+<p>staat1cho verwacht de <code>_enriched.csv</code> van 1cijferho:
+puntkomma-gescheiden, UTF-8, kolomnamen in snake_case. Het dashboard
+controleert na het uploaden of de verplichte kolommen aanwezig zijn. De
+kolommen
+<code>hoogste_vooropleiding_voor_het_ho_omschrijving_vooropleiding</code>
+en <code>eerste_jaar_in_het_hoger_onderwijs</code> zijn optioneel;
+zonder die kolommen worden vooropleiding en eerstejaars HO
+“onbekend”.</p>
+<p>Het package vraagt R 4.1.0 of nieuwer. Voor het dashboard zijn
+daarnaast <code>bslib</code>, <code>DT</code>, <code>ggplot2</code>,
+<code>plotly</code>, <code>scales</code>, <code>tidyr</code> en
+<code>writexl</code> nodig.</p>
 </div>
 
 
